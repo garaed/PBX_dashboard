@@ -9,7 +9,7 @@ set -e
 
 # ── Настройки — ЗАМЕНИ на свой GitHub ник ────────────────────────────────────
 GITHUB_USER="garaed"
-GITHUB_REPO="pbx-dashboard"
+GITHUB_REPO="PBX_dashboard"
 GITHUB_BRANCH="main"
 # ─────────────────────────────────────────────────────────────────────────────
 

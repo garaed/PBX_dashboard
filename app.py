@@ -528,6 +528,7 @@ def trunk_performance(period: str = "24h"):
             FROM {CDR_TABLE}
             WHERE calldate >= DATE_SUB(NOW(), INTERVAL {interval})
               AND dstchannel LIKE 'PJSIP/%'
+          AND dstchannel NOT LIKE 'PJSIP/%\_2-%'
               AND dstchannel != ''
               AND dstchannel NOT LIKE 'PJSIP/Local/%'
             GROUP BY trunk
@@ -721,6 +722,7 @@ PERIOD_MAP = {
     "30m": "30 MINUTE",
     "1h":  "1 HOUR",
     "6h":  "6 HOUR",
+    "12h": "12 HOUR",
     "24h": "24 HOUR",
     "7d":  "7 DAY",
     "30d": "30 DAY",
@@ -733,6 +735,7 @@ PREV_PERIOD_MAP = {
     "30m": ("60 MINUTE", "30 MINUTE"),
     "1h":  ("2 HOUR",    "1 HOUR"),
     "6h":  ("12 HOUR",   "6 HOUR"),
+    "12h": ("24 HOUR",   "12 HOUR"),
     "24h": ("48 HOUR",   "24 HOUR"),
     "7d":  ("14 DAY",    "7 DAY"),
     "30d": ("60 DAY",    "30 DAY"),
@@ -767,16 +770,30 @@ def quality_stats(period: str = "1h"):
     try:
         # Текущий период
         cur_rows = mysql_query(f"""
-            SELECT disposition, COUNT(*) AS cnt FROM {CDR_TABLE}
-            WHERE calldate >= DATE_SUB(NOW(), INTERVAL {interval})
-            GROUP BY disposition
+            SELECT disposition, COUNT(*) AS cnt FROM (
+                SELECT CASE
+                    WHEN MAX(CASE WHEN disposition='ANSWERED' THEN 3 ELSE 0 END)=3 THEN 'ANSWERED'
+                    WHEN MAX(CASE WHEN disposition='BUSY'     THEN 2 ELSE 0 END)=2 THEN 'BUSY'
+                    WHEN MAX(CASE WHEN disposition='FAILED'   THEN 1 ELSE 0 END)=1 THEN 'FAILED'
+                    ELSE 'NO ANSWER' END AS disposition
+                FROM {CDR_TABLE}
+                WHERE calldate >= DATE_SUB(NOW(), INTERVAL {interval})
+                GROUP BY src, dst, DATE_FORMAT(calldate,'%Y%m%d%H%i')
+            ) _u GROUP BY disposition
         """)
         # Предыдущий равный период — для стрелки тренда
         prev_rows = mysql_query(f"""
-            SELECT disposition, COUNT(*) AS cnt FROM {CDR_TABLE}
-            WHERE calldate >= DATE_SUB(NOW(), INTERVAL {prev_start})
-              AND calldate <  DATE_SUB(NOW(), INTERVAL {prev_end})
-            GROUP BY disposition
+            SELECT disposition, COUNT(*) AS cnt FROM (
+                SELECT CASE
+                    WHEN MAX(CASE WHEN disposition='ANSWERED' THEN 3 ELSE 0 END)=3 THEN 'ANSWERED'
+                    WHEN MAX(CASE WHEN disposition='BUSY'     THEN 2 ELSE 0 END)=2 THEN 'BUSY'
+                    WHEN MAX(CASE WHEN disposition='FAILED'   THEN 1 ELSE 0 END)=1 THEN 'FAILED'
+                    ELSE 'NO ANSWER' END AS disposition
+                FROM {CDR_TABLE}
+                WHERE calldate >= DATE_SUB(NOW(), INTERVAL {prev_start})
+                  AND calldate <  DATE_SUB(NOW(), INTERVAL {prev_end})
+                GROUP BY src, dst, DATE_FORMAT(calldate,'%Y%m%d%H%i')
+            ) _u GROUP BY disposition
         """)
         # Средняя длительность отвеченных звонков
         dur_rows = mysql_query(f"""
@@ -813,7 +830,7 @@ def quality_stats(period: str = "1h"):
 
 
 @app.get("/api/quality/hourly")
-def quality_hourly():
+def quality_hourly(tz: int = 0):
     """
     Распределение звонков по часам суток за последние 7 дней.
     Показывает пиковые часы нагрузки и средний % дозвона в каждый час.
@@ -821,13 +838,19 @@ def quality_hourly():
     """
     try:
         rows = mysql_query(f"""
-            SELECT HOUR(calldate) AS hour,
-                   COUNT(*) AS total,
+            SELECT hour, COUNT(*) AS total,
                    SUM(CASE WHEN disposition='ANSWERED' THEN 1 ELSE 0 END) AS answered
-            FROM {CDR_TABLE}
-            WHERE calldate >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            GROUP BY HOUR(calldate)
-            ORDER BY HOUR(calldate)
+            FROM (
+                SELECT HOUR(DATE_ADD(calldate, INTERVAL {tz} HOUR)) AS hour,
+                    CASE
+                        WHEN MAX(CASE WHEN disposition='ANSWERED' THEN 3 ELSE 0 END)=3 THEN 'ANSWERED'
+                        WHEN MAX(CASE WHEN disposition='BUSY'     THEN 2 ELSE 0 END)=2 THEN 'BUSY'
+                        WHEN MAX(CASE WHEN disposition='FAILED'   THEN 1 ELSE 0 END)=1 THEN 'FAILED'
+                        ELSE 'NO ANSWER' END AS disposition
+                FROM {CDR_TABLE}
+                WHERE calldate >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY src, dst, DATE_FORMAT(calldate,'%Y%m%d%H%i')
+            ) _u GROUP BY hour ORDER BY hour
         """)
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -849,7 +872,7 @@ def quality_hourly():
 
 
 @app.get("/api/quality/timeline")
-def quality_timeline(period: str = "24h"):
+def quality_timeline(period: str = "24h", tz: int = 0):
     """
     Временная детализация для графика звонков.
     Для мелких интервалов (15м/30м) используем UNIX_TIMESTAMP чтобы
@@ -866,6 +889,14 @@ def quality_timeline(period: str = "24h"):
             "4 HOUR",
         ),
         "1h": (
+            "DATE_FORMAT(calldate, '%H:00')",
+            "12 HOUR",
+        ),
+        "6h": (
+            "DATE_FORMAT(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(calldate)/1800)*1800), '%H:%i')",
+            "6 HOUR",
+        ),
+        "12h": (
             "DATE_FORMAT(calldate, '%H:00')",
             "12 HOUR",
         ),
@@ -886,13 +917,18 @@ def quality_timeline(period: str = "24h"):
 
     try:
         rows = mysql_query(f"""
-            SELECT {date_expr} AS period,
-                   disposition,
-                   COUNT(*) AS cnt
-            FROM {CDR_TABLE}
-            WHERE calldate >= DATE_SUB(NOW(), INTERVAL {interval})
-            GROUP BY period, disposition
-            ORDER BY period ASC
+            SELECT period, disposition, COUNT(*) AS cnt FROM (
+                SELECT {date_expr.replace("calldate", f"DATE_ADD(calldate, INTERVAL {tz} HOUR)")} AS period,
+                    CASE
+                        WHEN MAX(CASE WHEN disposition='ANSWERED' THEN 3 ELSE 0 END)=3 THEN 'ANSWERED'
+                        WHEN MAX(CASE WHEN disposition='BUSY'     THEN 2 ELSE 0 END)=2 THEN 'BUSY'
+                        WHEN MAX(CASE WHEN disposition='FAILED'   THEN 1 ELSE 0 END)=1 THEN 'FAILED'
+                        ELSE 'NO ANSWER' END AS disposition,
+                    MIN(calldate) AS min_calldate
+                FROM {CDR_TABLE}
+                WHERE calldate >= DATE_SUB(NOW(), INTERVAL {interval})
+                GROUP BY src, dst, DATE_FORMAT(calldate,'%Y%m%d%H%i')
+            ) _u GROUP BY period, disposition ORDER BY MIN(min_calldate) ASC
         """)
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -987,6 +1023,173 @@ def root():
 
 
 # ─── Точка входа ─────────────────────────────────────────────────────────────
+
+
+# ─── Pool & Log constants ─────────────────────────────────────────────────────
+import time as _time
+DIALPLAN_FILE   = Path("/etc/asterisk/extensions_custom.conf")
+DIALPLAN_BACKUP = Path("/etc/asterisk/extensions_custom.conf.randcool_bak")
+LOG_FILE        = Path("/var/log/asterisk/full")
+
+
+# ─── /api/logs ────────────────────────────────────────────────────────────────
+@app.get("/api/logs")
+def get_logs(limit: int = 80, level: str = "errors"):
+    try:
+        if not LOG_FILE.exists():
+            return {"lines": []}
+        result = subprocess.run(
+            ["tail", "-n", "2000", str(LOG_FILE)],
+            capture_output=True, text=True, timeout=5
+        )
+        lines = result.stdout.splitlines()
+        IGNORE = ["missedcall", "nonexistent", "app-missedcall",
+                  "Internal Gosub", "sub-record"]
+        if level == "errors":
+            filtered = [l for l in lines
+                        if any(x in l for x in ["WARNING", "ERROR"])
+                        and not any(i in l for i in IGNORE)]
+        elif level == "sip5xx":
+            filtered = [l for l in lines if "SIP/2.0 5" in l]
+        else:
+            filtered = [l for l in lines if not any(i in l for i in IGNORE)
+                        and any(x in l for x in ["WARNING","ERROR","NOTICE","DBdel"])]
+        return {"lines": filtered[-limit:]}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ─── /api/pool/status ─────────────────────────────────────────────────────────
+@app.get("/api/pool/status")
+def pool_status():
+    def acmd(c):
+        r = subprocess.run(["asterisk", "-rx", c],
+                           capture_output=True, text=True, timeout=10)
+        return r.stdout
+
+    glist   = acmd("database show glist")
+    gcount  = acmd("database show gcount")
+    gstatus = acmd("database show gstatus")
+    cool    = acmd("database show cool")
+
+    counts = {}
+    for line in gcount.splitlines():
+        if "/gcount/" in line:
+            p = line.split(":", 1)
+            ext = p[0].strip().split("/")[-1]
+            try: counts[ext] = int(p[1].strip())
+            except: counts[ext] = 0
+
+    burned_set = set()
+    for line in gstatus.splitlines():
+        if "/gstatus/" in line and "burned" in line:
+            burned_set.add(line.split("/gstatus/")[-1].split(":")[0].strip())
+
+    now = int(_time.time())
+    incall = {}
+    for line in cool.splitlines():
+        if "/cool/" not in line: continue
+        key_part = line.split("/cool/")[-1].split(":")[0].strip()
+        if key_part in ("reserve","threshold","cooldown","global"): continue
+        val = line.split(":", 1)[-1].strip()
+        if val == "IN_CALL":      incall[key_part] = "in_call"
+        elif val.isdigit() and int(val) > now: incall[key_part] = "cooldown"
+
+    reserve=[]; threshold=100; cooldown_sec=30
+    for line in cool.splitlines():
+        if "/cool/reserve"   in line: reserve = [e for e in line.split(":",1)[-1].strip().split("&") if e]
+        if "/cool/threshold" in line:
+            try: threshold = int(line.split(":",1)[-1].strip())
+            except: pass
+        if "/cool/cooldown"  in line:
+            try: cooldown_sec = int(line.split(":",1)[-1].strip())
+            except: pass
+
+    groups = {}
+    for line in glist.splitlines():
+        if "/glist/" not in line: continue
+        p = line.split(":", 1)
+        grp  = p[0].strip().split("/")[-1]
+        exts = [e for e in p[1].strip().split("&") if e] if len(p)>1 else []
+        ext_data = []
+        for ext in exts:
+            if ext in burned_set:          s = "burned"
+            elif incall.get(ext)=="in_call": s = "in_call"
+            elif incall.get(ext)=="cooldown": s = "cooldown"
+            else:                           s = "active"
+            ext_data.append({"name": ext, "calls": counts.get(ext,0), "status": s})
+        groups[grp] = {
+            "extensions": ext_data,
+            "total":  len(ext_data),
+            "active": sum(1 for e in ext_data if e["status"] in ("active","in_call","cooldown")),
+            "burned": sum(1 for e in ext_data if e["status"]=="burned"),
+        }
+
+    totals = {
+        "extensions": sum(g["total"]  for g in groups.values()),
+        "active":     sum(g["active"] for g in groups.values()),
+        "burned":     sum(g["burned"] for g in groups.values()),
+        "reserve":    len(reserve),
+    }
+    return {"groups": groups, "reserve": reserve, "reserve_count": len(reserve),
+            "threshold": threshold, "cooldown_sec": cooldown_sec, "totals": totals}
+
+
+# ─── /api/pool/extensions ─────────────────────────────────────────────────────
+@app.get("/api/pool/extensions")
+def pool_extensions():
+    rows = mysql_query("""
+        SELECT DISTINCT id FROM asterisk.pjsip
+        WHERE type='endpoint' AND id REGEXP '^[a-z]+$' AND LENGTH(id)>=4
+        ORDER BY id
+    """)
+    exts = [r["id"] for r in rows]
+    return {"extensions": exts, "count": len(exts)}
+
+
+# ─── /api/pool/apply ──────────────────────────────────────────────────────────
+@app.post("/api/pool/apply")
+def pool_apply(payload: dict):
+    dialplan = payload.get("dialplan","")
+    astdb_cmds = payload.get("astdb_cmds",[])
+    if not dialplan:
+        raise HTTPException(400, "Dialplan пустой")
+    try:
+        if DIALPLAN_FILE.exists():
+            DIALPLAN_BACKUP.write_text(DIALPLAN_FILE.read_text())
+        DIALPLAN_FILE.write_text(dialplan)
+        for cmd in astdb_cmds:
+            subprocess.run(["asterisk","-rx",cmd], timeout=5, capture_output=True)
+        r = subprocess.run(["asterisk","-rx","dialplan reload"],
+                           capture_output=True, text=True, timeout=10)
+        return {"success": True, "backup": str(DIALPLAN_BACKUP),
+                "reload": r.stdout.strip()}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ─── /api/pool/rollback ───────────────────────────────────────────────────────
+@app.post("/api/pool/rollback")
+def pool_rollback():
+    if not DIALPLAN_BACKUP.exists():
+        raise HTTPException(404, "Резервная копия не найдена")
+    try:
+        DIALPLAN_FILE.write_text(DIALPLAN_BACKUP.read_text())
+        for cmd in ["database deltree glist","database deltree gcount",
+                    "database deltree gstatus","database del cool reserve",
+                    "database del cool threshold","database del cool cooldown"]:
+            subprocess.run(["asterisk","-rx",cmd], timeout=5, capture_output=True)
+        subprocess.run(["asterisk","-rx","dialplan reload"], timeout=10, capture_output=True)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ─── /api/pool/backup_exists ──────────────────────────────────────────────────
+@app.get("/api/pool/backup_exists")
+def pool_backup_exists():
+    return {"exists": DIALPLAN_BACKUP.exists(),
+            "path": str(DIALPLAN_BACKUP) if DIALPLAN_BACKUP.exists() else None}
 
 if __name__ == "__main__":
     import uvicorn

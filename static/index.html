@@ -3,157 +3,270 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PBX Dashboard</title>
+<title>BusyHere · PBX Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ── Reset & Variables ─────────────────────────────────────────────────── */
+/* ── Reset & BusyHere theme ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #0a0c10;
-  --surf:     #10141c;
-  --surf2:    #161b26;
-  --surf3:    #1c2233;
-  --border:   #232a3a;
-  --border2:  #2d3650;
-  --text:     #d4ddf5;
-  --muted:    #5a6a8a;
-  --muted2:   #3a4a6a;
-  --ok:       #22d65a;
-  --warn:     #f0a500;
-  --danger:   #f03a3a;
-  --info:     #38b2f0;
-  --accent:   #4d7cfe;
-  --accent2:  #6d9cff;
-  --mono:     'JetBrains Mono', monospace;
-  --head:     'Syne', sans-serif;
+  /* Brand: deep navy-black + bright cyan + white */
+  --bg:          #020610;
+  --bg2:         #050d1a;
+  --bg3:         #081424;
+  --surf:        #0a1424;
+  --surf2:       #0f1c32;
+  --surf3:       #152640;
+  --border:      #1a2d4a;
+  --border2:     #243d5c;
+  --text:        #f4f8ff;
+  --white:       #ffffff;
+  --muted:       #7b92b8;
+  --muted2:      #4a6288;
+  --cyan:        #00e5ff;
+  --accent:      #00e5ff;
+  --accent2:     #66eeff;
+  --accent-dim:  rgba(0, 229, 255, 0.12);
+  --accent-glow: rgba(0, 229, 255, 0.35);
+  --ok:          #2ee88a;
+  --warn:        #ffb020;
+  --danger:      #ff4d6a;
+  --info:        var(--cyan);
+  --magenta:     #7c6bff;
+
+  /* Spacing & shape */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --sidebar-w: 220px;
+  --content-pad: var(--space-lg);
+
+  /* Typography */
+  --mono:  'JetBrains Mono', ui-monospace, monospace;
+  --head:  'Plus Jakarta Sans', system-ui, sans-serif;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-lg: 15px;
+
+  /* Shadows */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 20px rgba(0, 229, 255, 0.08);
+
+  /* Качество: семантика в палитре BusyHere (cyan / accent / magenta / danger) */
+  --q-good:   var(--cyan);
+  --q-mid:    var(--accent2);
+  --q-bad:    var(--magenta);
+  --q-error:  var(--danger);
+
+  --chart-grid:      rgba(26, 45, 74, 0.55);
+  --chart-tick:      #7b92b8;
+  --chart-empty:     rgba(21, 38, 64, 0.6);
+  --chart-good:      rgba(0, 229, 255, 0.85);
+  --chart-mid:       rgba(102, 238, 255, 0.72);
+  --chart-bad:       rgba(124, 107, 255, 0.82);
+  --chart-na:        rgba(123, 146, 184, 0.5);
+  --chart-fail:      rgba(255, 77, 106, 0.48);
+  --chart-cyan:      rgba(0, 229, 255, 0.88);
+  --chart-cyan-fill: rgba(0, 229, 255, 0.07);
+  --chart-threshold: rgba(0, 229, 255, 0.42);
 }
 
 body {
   background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(0, 229, 255, 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(15, 40, 80, 0.4), transparent);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--text-base);
+  line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
-.shell { display: flex; min-height: 100vh; }
+.shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
 
 /* ── Sidebar ───────────────────────────────────────────────────────────── */
 .sidebar {
-  width: 200px;
-  background: var(--surf);
+  width: var(--sidebar-w);
+  background: linear-gradient(180deg, var(--surf) 0%, var(--bg2) 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 100;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.35);
 }
 
 .logo {
-  padding: 22px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   border-bottom: 1px solid var(--border);
 }
 
 .logo-mark {
   font-family: var(--head);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
-  color: var(--accent2);
-  letter-spacing: -0.5px;
-  line-height: 1;
+  color: var(--white);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
-.logo-mark span { color: var(--muted); font-weight: 500; }
+.logo-mark span {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.logo-product {
+  width: 100%;
+  margin-top: 10px;
+  font-family: var(--head);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.logo-product strong {
+  color: var(--white);
+  font-weight: 700;
+}
 
 .logo-host {
-  font-size: 11px;
+  width: 100%;
+  font-size: 10px;
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: var(--space-sm);
+  padding: 0 var(--space-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 
-.nav { padding: 10px 0; flex: 1; }
+.nav { padding: var(--space-sm) 0; flex: 1; }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
+  padding: 11px var(--space-md);
+  margin: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--muted);
-  font-size: 12px;
+  font-family: var(--head);
+  font-size: var(--text-sm);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  border-left: 2px solid transparent;
-  transition: color .15s, background .15s, border-color .15s;
+  letter-spacing: 0.02em;
+  border-left: none;
+  transition: color .15s, background .15s, box-shadow .15s;
   user-select: none;
 }
 
-.nav-item:hover { color: var(--text); background: var(--surf2); }
-
-.nav-item.active {
-  color: var(--accent2);
-  border-left-color: var(--accent);
-  background: rgba(77,124,254,.08);
+.nav-item:hover {
+  color: var(--text);
+  background: var(--surf2);
 }
 
-.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+.nav-item.active {
+  color: var(--cyan);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.2);
+}
+
+.nav-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  opacity: 0.9;
+}
 
 .sidebar-footer {
-  padding: 14px 20px;
+  padding: var(--space-md);
   border-top: 1px solid var(--border);
   font-size: 10px;
   color: var(--muted2);
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
 /* ── Main ──────────────────────────────────────────────────────────────── */
-.main { margin-left: 200px; flex: 1; display: flex; flex-direction: column; }
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1 1 auto;
+  width: calc(100% - var(--sidebar-w));
+  max-width: calc(100% - var(--sidebar-w));
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 /* ── Topbar ────────────────────────────────────────────────────────────── */
 .topbar {
-  background: var(--surf);
+  background: rgba(10, 20, 36, 0.85);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
+  padding: var(--space-md) var(--content-pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 50;
+  width: 100%;
 }
 
-.topbar-left { display: flex; align-items: center; gap: 20px; }
+.topbar-left { display: flex; align-items: center; gap: var(--space-lg); }
 
 .status-pill {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--muted);
+  gap: var(--space-sm);
+  font-family: var(--head);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .status-led {
-  width: 7px; height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--ok);
-  box-shadow: 0 0 6px var(--ok);
+  box-shadow: 0 0 10px var(--ok);
   animation: pulse 2s ease-in-out infinite;
 }
 
-.status-led.off { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: none; }
+.status-led.off {
+  background: var(--danger);
+  box-shadow: 0 0 10px var(--danger);
+  animation: none;
+}
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: .5; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .55; transform: scale(0.92); }
 }
 
 .topbar-meta { font-size: 11px; color: var(--muted2); }
@@ -162,83 +275,117 @@ body {
   background: var(--surf2);
   border: 1px solid var(--border2);
   color: var(--muted);
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 12px;
-  font-family: var(--mono);
+  font-size: var(--text-sm);
+  font-family: var(--head);
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: color .15s, border-color .15s;
+  transition: color .15s, border-color .15s, background .15s, box-shadow .15s;
 }
 
-.refresh-btn:hover { color: var(--text); border-color: var(--accent); }
+.refresh-btn:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: var(--accent-dim);
+  box-shadow: var(--shadow-glow);
+}
 
 .spin { animation: spin .8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Content ───────────────────────────────────────────────────────────── */
-.content { padding: 24px; }
+.content {
+  flex: 1;
+  width: 100%;
+  padding: var(--content-pad);
+  box-sizing: border-box;
+}
 
-.section { display: none; }
-.section.active { display: block; }
+.section { display: none; width: 100%; }
+.section.active { display: block; width: 100%; }
+
+.section > .card,
+.section > .quality-toolbar,
+.section > .quality-hero-grid {
+  width: 100%;
+  max-width: 100%;
+}
 
 /* ── Cards ─────────────────────────────────────────────────────────────── */
 .card {
-  background: var(--surf);
+  background: linear-gradient(145deg, var(--surf) 0%, var(--bg2) 100%);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 18px;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .card-title {
   font-family: var(--head);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--text);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--white);
 }
 
-.card-body { padding: 16px 18px; }
+.card-body { padding: var(--space-md); }
+
+.card--flush { padding: 0; overflow: hidden; margin-bottom: var(--space-md); }
+.card-pad { padding: var(--space-md) var(--space-md) 0; }
+.card-pad-sm { padding: 10px var(--space-md); font-size: 10px; color: var(--muted2); }
+.card-accent-ok { padding: 20px 22px; border-left: 4px solid var(--ok); position: relative; overflow: hidden; }
+.card-accent-cyan { padding: 18px 20px; border-left: 4px solid var(--cyan); }
+.card-accent-violet { padding: 18px 20px; border-left: 4px solid var(--magenta); }
 
 /* ── Stat Grid ─────────────────────────────────────────────────────────── */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .stat {
-  background: var(--surf);
+  background: var(--surf2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
   position: relative;
   overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.stat:hover {
+  border-color: var(--border2);
+  box-shadow: var(--shadow-glow);
 }
 
 .stat::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--accent);
+  height: 3px;
+  background: var(--cyan);
 }
 
-.stat.ok::before  { background: var(--ok);   }
+.stat.ok::before  { background: var(--ok); }
 .stat.bad::before { background: var(--danger); }
-.stat.inf::before { background: var(--info); }
+.stat.inf::before { background: var(--cyan); }
 
 .stat-lbl {
   font-size: 10px;
@@ -250,15 +397,16 @@ body {
 
 .stat-val {
   font-family: var(--head);
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
   line-height: 1;
-  color: var(--text);
+  color: var(--white);
+  letter-spacing: -0.02em;
 }
 
 .stat.ok  .stat-val { color: var(--ok); }
 .stat.bad .stat-val { color: var(--danger); }
-.stat.inf .stat-val { color: var(--info); }
+.stat.inf .stat-val { color: var(--cyan); }
 
 .stat-sub { font-size: 10px; color: var(--muted); margin-top: 5px; }
 
@@ -278,12 +426,12 @@ th {
 
 td {
   padding: 11px 14px;
-  border-bottom: 1px solid rgba(35,42,58,.6);
+  border-bottom: 1px solid rgba(26, 45, 74, 0.65);
   vertical-align: middle;
 }
 
 tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: var(--surf2); }
+tbody tr:hover td { background: rgba(0, 229, 255, 0.04); }
 
 /* ── Badges ────────────────────────────────────────────────────────────── */
 .badge {
@@ -301,7 +449,7 @@ tbody tr:hover td { background: var(--surf2); }
 .badge-danger  { background: rgba(240,58,58,.12);  color: var(--danger); border: 1px solid rgba(240,58,58,.25); }
 .badge-warn    { background: rgba(240,165,0,.12);  color: var(--warn);   border: 1px solid rgba(240,165,0,.25); }
 .badge-muted   { background: rgba(90,106,138,.12); color: var(--muted);  border: 1px solid rgba(90,106,138,.25); }
-.badge-info    { background: rgba(56,178,240,.12); color: var(--info);   border: 1px solid rgba(56,178,240,.25); }
+.badge-info    { background: rgba(0,229,255,.1); color: var(--cyan); border: 1px solid rgba(0,229,255,.28); }
 
 .led {
   width: 6px; height: 6px;
@@ -324,11 +472,20 @@ tbody tr:hover td { background: var(--surf2); }
   transition: all .15s;
 }
 
-.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { background: var(--accent2); }
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg);
+  border-color: var(--cyan);
+  font-family: var(--head);
+}
+.btn-primary:hover {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
 
-.btn-ghost  { background: var(--surf2); color: var(--muted); border-color: var(--border2); }
-.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+.btn-ghost  { background: var(--surf2); color: var(--muted); border-color: var(--border2); font-family: var(--head); }
+.btn-ghost:hover { color: var(--cyan); border-color: var(--cyan); background: var(--accent-dim); }
 
 .btn-danger { background: rgba(240,58,58,.1); color: var(--danger); border-color: rgba(240,58,58,.3); }
 .btn-danger:hover { background: rgba(240,58,58,.2); }
@@ -352,7 +509,10 @@ tbody tr:hover td { background: var(--surf2); }
   transition: border-color .15s;
 }
 
-.input:focus { border-color: var(--accent); }
+.input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
 .input::placeholder { color: var(--muted2); }
 
 select.input { cursor: pointer; }
@@ -385,21 +545,21 @@ select.input { cursor: pointer; }
 /* ── Channel bar ───────────────────────────────────────────────────────── */
 .ch-bar { display: flex; align-items: center; gap: 8px; }
 .ch-track { flex: 1; height: 4px; background: var(--surf3); border-radius: 2px; overflow: hidden; max-width: 100px; }
-.ch-fill  { height: 100%; border-radius: 2px; background: var(--accent); transition: width .3s; }
+.ch-fill  { height: 100%; border-radius: 2px; background: var(--cyan); transition: width .3s; }
 .ch-fill.hi { background: var(--warn); }
 .ch-fill.top { background: var(--danger); }
 
 /* ── Channels expand ───────────────────────────────────────────────────── */
-.ch-row { background: var(--surf2); border-left: 2px solid var(--accent); }
+.ch-row { background: var(--surf2); border-left: 2px solid var(--cyan); }
 .ch-row td { padding: 10px 14px; }
 .ch-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .ch-tag {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--info);
-  background: rgba(56,178,240,.08);
-  border: 1px solid rgba(56,178,240,.2);
-  border-radius: 4px;
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
 
@@ -433,7 +593,14 @@ select.input { cursor: pointer; }
 /* ── Quality charts ────────────────────────────────────────────────────── */
 .chart-wrap { height: 220px; position: relative; }
 
-.period-tabs { display: flex; gap: 3px; background: var(--surf2); padding: 3px; border-radius: 6px; }
+.period-tabs {
+  display: flex;
+  gap: 3px;
+  background: var(--surf2);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
 .ptab {
   padding: 4px 11px;
   border-radius: 4px;
@@ -445,7 +612,7 @@ select.input { cursor: pointer; }
   background: none;
   transition: all .15s;
 }
-.ptab.active { background: var(--accent); color: #fff; }
+.ptab.active { background: var(--cyan); color: var(--bg); font-weight: 600; }
 
 /* ── Error analysis ────────────────────────────────────────────────────── */
 .err-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -524,10 +691,10 @@ select.input { cursor: pointer; }
 /* ── Sub-tabs (внутри раздела) ─────────────────────────────────────────── */
 .sub-tabs {
   display: flex;
-  gap: 2px;
-  background: var(--bg);
+  gap: var(--space-xs);
+  background: var(--surf2);
   border-bottom: 1px solid var(--border);
-  padding: 0 18px;
+  padding: var(--space-sm) var(--space-md) 0;
 }
 
 .stab {
@@ -546,7 +713,7 @@ select.input { cursor: pointer; }
 }
 
 .stab:hover { color: var(--text); }
-.stab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+.stab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
 
 /* ── Contacts grouped ──────────────────────────────────────────────────── */
 .ep-group { border-bottom: 1px solid var(--border); }
@@ -580,12 +747,13 @@ select.input { cursor: pointer; }
 
 .ep-count {
   font-size: 11px;
-  background: rgba(77,124,254,.15);
-  color: var(--accent2);
-  border: 1px solid rgba(77,124,254,.3);
+  background: var(--accent-dim);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 229, 255, 0.28);
   border-radius: 12px;
   padding: 2px 10px;
   font-weight: 700;
+  font-family: var(--head);
 }
 
 .ep-count.avail {
@@ -604,9 +772,10 @@ select.input { cursor: pointer; }
   font-family: var(--head);
   font-size: 48px;
   font-weight: 800;
-  color: var(--accent2);
+  color: var(--cyan);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
+  text-shadow: 0 0 40px var(--accent-glow);
 }
 
 .contacts-total-lbl {
@@ -637,16 +806,182 @@ select.input { cursor: pointer; }
 
 /* В фокусе — выделяем активное редактирование */
 .ep-label-input:focus {
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--cyan);
   color: var(--text);
-  background: rgba(77,124,254,.06);
+  background: var(--accent-dim);
   border-radius: 3px 3px 0 0;
 }
 
-/* Когда значение задано и не в фокусе — показываем акцентом */
 .ep-label-input.has-value:not(:focus) {
-  color: var(--accent2);
+  color: var(--cyan);
   border-bottom-color: transparent;
+}
+
+/* ── Quality / layout helpers ──────────────────────────────────────────── */
+.quality-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.quality-toolbar-label {
+  font-family: var(--head);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.quality-hero-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.hero-kicker {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-sm);
+  font-family: var(--head);
+  font-weight: 600;
+}
+
+.hero-rate-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  margin-bottom: 12px;
+}
+
+.hero-rate-big {
+  font-family: var(--head);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--white);
+}
+
+.hero-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
+}
+
+.hero-stat-line { font-size: var(--text-sm); }
+
+.hero-thresholds {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 9px;
+  color: var(--muted2);
+  text-align: right;
+  line-height: 1.8;
+}
+
+/* Цифры и уровни качества — палитра BusyHere */
+.q-num {
+  font-weight: 600;
+  margin-left: 4px;
+}
+.q-num--good { color: var(--q-good); }
+.q-num--mid  { color: var(--q-mid); }
+.q-num--bad  { color: var(--q-bad); }
+.q-num--err  { color: var(--q-error); }
+
+.q-dot--good { color: var(--q-good); }
+.q-dot--mid  { color: var(--q-mid); }
+.q-dot--bad  { color: var(--q-bad); }
+
+.rotation-hint {
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: rgba(124, 107, 255, 0.12);
+  border: 1px solid rgba(124, 107, 255, 0.28);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--q-mid);
+}
+
+.contacts-toolbar {
+  padding: var(--space-md);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.contacts-toolbar-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.subtab-pool { display: none; padding: var(--space-md); }
+
+.stab-badge { margin-left: 4px; font-size: 10px; color: var(--muted); }
+.stab-badge--danger { color: var(--danger); }
+
+.log-viewer {
+  background: var(--bg3);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 10px;
+  height: 240px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.6;
+  font-family: var(--mono);
+}
+
+.chart-h { height: 300px; }
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  font-family: var(--head);
+  font-weight: 600;
+}
+
+.pre-block {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-size: 10px;
+  overflow-y: auto;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.pre-block--ok { color: var(--ok); max-height: 280px; }
+.pre-block--cyan { color: var(--cyan); max-height: 180px; }
+
+@media (max-width: 1100px) {
+  .quality-hero-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .sidebar { width: 100%; position: relative; height: auto; }
+  .main { margin-left: 0; width: 100%; max-width: 100%; }
+  .shell { flex-direction: column; }
+  .stat-grid { grid-template-columns: 1fr; }
 }
 
 .ep-label-input::placeholder {
@@ -663,7 +998,8 @@ select.input { cursor: pointer; }
 <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
 <aside class="sidebar">
   <div class="logo">
-    <div class="logo-mark">PBX<span>/</span>Monitor</div>
+    <div class="logo-mark">Busy<span>Here</span></div>
+    <div class="logo-product"><strong>PBX</strong> Dashboard</div>
     <div class="logo-host" id="hostname">загрузка...</div>
   </div>
 
@@ -679,6 +1015,9 @@ select.input { cursor: pointer; }
     </div>
     <div class="nav-item" onclick="nav('recordings')">
       <span class="nav-icon">◉</span> Записи
+    </div>
+    <div class="nav-item" onclick="nav('shift')">
+      <span class="nav-icon">⚙</span> Смена
     </div>
   </nav>
 
@@ -713,18 +1052,21 @@ select.input { cursor: pointer; }
     <div class="section active" id="sec-trunks">
 
       <!-- Суб-вкладки -->
-      <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px">
+      <div class="card card--flush">
         <div class="sub-tabs">
           <button class="stab active" id="stab-trunks"   onclick="showSubTab('trunks')">Статус транков</button>
           <button class="stab"        id="stab-contacts" onclick="showSubTab('contacts')">
-            Операторы <span id="stab-contacts-cnt" style="margin-left:4px;font-size:10px;color:var(--muted)"></span>
+            Операторы <span id="stab-contacts-cnt" class="stab-badge"></span>
+          </button>
+          <button class="stab" id="stab-pool" onclick="showSubTab('pool');loadPoolStatus()">
+            Пулы <span id="pool-burned-badge" class="stab-badge stab-badge--danger" style="display:none"></span>
           </button>
         </div>
 
         <!-- ── Вкладка: Транки ── -->
         <div id="subtab-trunks">
-          <div style="padding:16px 18px 0">
-            <div class="stat-grid" style="margin-bottom:16px">
+          <div class="card-pad">
+            <div class="stat-grid">
               <div class="stat">    <div class="stat-lbl">Транков</div><div class="stat-val" id="t-total">—</div></div>
               <div class="stat ok"> <div class="stat-lbl">Зарег.</div> <div class="stat-val" id="t-reg">—</div></div>
               <div class="stat bad"><div class="stat-lbl">Не зарег.</div><div class="stat-val" id="t-unreg">—</div></div>
@@ -732,18 +1074,17 @@ select.input { cursor: pointer; }
             </div>
           </div>
           <div id="trunks-groups"></div>
-          <div style="padding:10px 18px;font-size:10px;color:var(--muted2)" id="trunks-ts"></div>
+          <div class="card-pad-sm" id="trunks-ts"></div>
         </div>
 
         <!-- ── Вкладка: Операторы ── -->
         <div id="subtab-contacts" style="display:none">
-          <!-- Шапка с общим счётчиком и управлением -->
-          <div style="padding:16px 18px;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--border)">
+          <div class="contacts-toolbar">
             <div>
               <div class="contacts-total" id="contacts-total">—</div>
               <div class="contacts-total-lbl">операторов подключено</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div class="contacts-toolbar-actions">
               <div style="font-size:11px;color:var(--muted)" id="contacts-updated"></div>
               <!-- Поиск -->
               <div class="fld">
@@ -764,6 +1105,17 @@ select.input { cursor: pointer; }
               <button class="btn btn-ghost" onclick="loadContacts()" style="align-self:flex-end">↻ Обновить</button>
             </div>
           </div>
+
+        <!-- ── Вкладка: Пулы ── -->
+        <div id="subtab-pool" class="subtab-pool">
+          <!-- Header summary -->
+          <div id="pool-status-header" style="display:flex;gap:12px;flex-wrap:wrap;
+            align-items:center;margin-bottom:16px;font-size:13px"></div>
+          <!-- Group tables -->
+          <div id="pool-status-container">
+            <div style="color:var(--muted2)">Загрузка пулов…</div>
+          </div>
+        </div>
           <!-- Сгруппированный список -->
           <div id="contacts-groups">
             <div class="empty">Загрузка…</div>
@@ -835,156 +1187,115 @@ select.input { cursor: pointer; }
     <!-- ── QUALITY ───────────────────────────────────────────────────── -->
     <div class="section" id="sec-quality">
 
-      <!-- Period selector (shared between hero and chart) -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <span style="font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase">Период анализа</span>
-        <div class=class="period-tabs" id="qp-tabs">
+      <div class="quality-toolbar">
+        <span class="quality-toolbar-label">Период анализа</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--muted2);font-size:11px">UTC</span>
+          <select id="tz-offset" class="input" style="width:72px;font-size:11px;padding:2px 4px" onchange="setTZ(this.value)"></select>
+        </div>
+        <div class="period-tabs" id="qp-tabs">
             <button class="ptab" onclick="setQP('15m',this)">15м</button>
             <button class="ptab" onclick="setQP('30m',this)">30м</button>
             <button class="ptab active" onclick="setQP('1h',this)">1ч</button>
             <button class="ptab" onclick="setQP('6h',this)">6ч</button>
-            <button class="ptab" onclick="setQP('24h',this)">24ч</button>
+            <button class="ptab" onclick="setQP('12h',this)">12ч</button>
           </div>
       </div>
 
-      <!-- Hero + secondary stats row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px">
+      <div class="quality-hero-grid">
 
-        <!-- HERO: Answer Rate -->
-        <div class="card" id="q-hero-card" style="grid-column:1;padding:20px 22px;border-left-width:4px;position:relative;overflow:hidden">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Дозвон</div>
-          <div id="q-rate-big" style="font-family:var(--head);font-size:52px;font-weight:800;line-height:1;color:var(--text)">—</div>
-          <!-- Trend arrow -->
-          <div id="q-trend" style="font-size:13px;font-weight:600;margin-top:6px"></div>
-          <div id="q-hero-sub" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
-          <!-- Thresholds legend -->
-          <div style="position:absolute;bottom:12px;right:14px;font-size:9px;color:var(--muted2);text-align:right;line-height:1.8">
-            <div>≥70% <span style="color:var(--ok)">●</span> норма</div>
-            <div>40-70% <span style="color:var(--warn)">●</span> следи</div>
-            <div>&lt;40% <span style="color:var(--danger)">●</span> ротация</div>
-          </div>
-        </div>
-
-        <!-- Нет ответа -->
-        <div class="stat" style="grid-column:2">
-          <div class="stat-lbl">Нет ответа</div>
-          <div class="stat-val" style="color:var(--warn)" id="q-na">—</div>
-          <div id="q-na-pct" style="font-size:20px;font-weight:700;color:var(--warn);margin-top:2px"></div>
-          <div class="stat-sub" id="q-na-sub"></div>
-        </div>
-
-        <!-- Ошибки -->
-        <div class="stat bad" style="grid-column:3">
-          <div class="stat-lbl">Ошибки / Failed</div>
-          <div class="stat-val" id="q-fail">—</div>
-          <div id="q-fail-pct" style="font-size:20px;font-weight:700;color:var(--danger);margin-top:2px"></div>
-          <div class="stat-sub" id="q-fail-sub"></div>
-        </div>
-
-        <!-- Средняя длительность -->
-        <div class="stat" style="grid-column:4;border-top-color:var(--info)">
-          <div class="stat-lbl">Средняя длит. разг.</div>
-          <div class="stat-val" style="font-size:24px;color:var(--info)" id="q-avg-dur">—</div>
-          <div class="stat-sub" id="q-total-sub"></div>
-        </div>
-      </div>
-
-      <!-- Rotation hint -->
-      <div id="rotation-hint" style="display:none;margin-bottom:14px;padding:12px 16px;
-           border-radius:8px;font-size:13px">
-        <strong id="rotation-strong"></strong>
-        <span id="rotation-reason" style="color:var(--text-muted);margin-left:8px"></span>
-      </div>
-
-      <!-- Main chart: dual-axis (volume bars + answer rate line) -->
-      <div class="card" style="margin-bottom:18px">
-        <div class="card-head">
-          <span class="card-title">График звонков</span>
-          <div class="period-tabs">
-            <button class="ptab" onclick="setTP('15m',this)">15м</button>
-            <button class="ptab" onclick="setTP('30m',this)">30м</button>
-            <button class="ptab" onclick="setTP('1h',this)">1ч</button>
-            <button class="ptab active" onclick="setTP('24h',this)">24ч</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:8px">
-            Столбики = % дозвона за период · Цвет: зелёный ≥70% · жёлтый 40-70% · красный &lt;40% · Пунктир = порог ротации 60% · Линия = объём звонков
-          </div>
-          <div class="chart-wrap" style="height:240px"><canvas id="q-chart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Peak hours heatmap -->
-      <div class="card" style="margin-bottom:18px">
-        <div class="card-head">
-          <span class="card-title">Активность по часам суток</span>
-          <span style="font-size:11px;color:var(--muted)">за последние 7 дней</span>
-        </div>
-        <div class="card-body">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:8px">
-            Столбики = объём · Линия = % дозвона — помогает планировать ротацию по времени суток
-          </div>
-          <div class="chart-wrap" style="height:180px"><canvas id="q-hourly-chart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Trunk performance ranking -->
-      <div class="card" style="margin-bottom:18px">
-        <div class="card-head">
-          <span class="card-title">Рейтинг транков по дозвону</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span style="font-size:10px;color:var(--muted)">Красные = менять в кабинете Ростелекома</span>
-            <div class="period-tabs">
-              <button class="ptab active" onclick="setTrunkPerfPeriod('1h',this)">1ч</button>
-              <button class="ptab" onclick="setTrunkPerfPeriod('6h',this)">6ч</button>
-              <button class="ptab" onclick="setTrunkPerfPeriod('24h',this)">24ч</button>
+        <div class="card card-accent-ok" id="q-hero-card">
+          <div class="hero-kicker">Дозвон</div>
+          <div class="hero-rate-row">
+            <div id="q-rate-big" class="hero-rate-big">—</div>
+            <div style="padding-bottom:6px">
+              <div id="q-trend" style="font-size:13px;font-weight:600;font-family:var(--head)"></div>
+              <div id="q-hero-sub" style="font-size:11px;color:var(--muted)"></div>
             </div>
           </div>
+          <div class="hero-stats-grid">
+            <div class="hero-stat-line">
+              <span style="color:var(--muted2)">Всего:</span>
+              <span id="q-total" style="color:var(--text);font-weight:600;margin-left:4px">—</span>
+            </div>
+            <div class="hero-stat-line">
+              <span style="color:var(--muted2)">Отвечено:</span>
+              <span id="q-ans" class="q-num q-num--good">—</span>
+              <span id="q-ans-r" style="color:var(--muted2);font-size:11px;margin-left:2px"></span>
+            </div>
+            <div class="hero-stat-line">
+              <span style="color:var(--muted2)">Нет ответа:</span>
+              <span id="q-na" class="q-num q-num--mid">—</span>
+              <span id="q-na-pct" style="color:var(--muted2);font-size:11px;margin-left:2px"></span>
+            </div>
+            <div class="hero-stat-line">
+              <span style="color:var(--muted2)">Ошибки:</span>
+              <span id="q-fail" class="q-num q-num--err">—</span>
+              <span id="q-fail-r" style="color:var(--muted2);font-size:11px;margin-left:2px"></span>
+            </div>
+            <div class="hero-stat-line">
+              <span style="color:var(--muted2)">Ср. длит.:</span>
+              <span id="q-avg-dur" style="color:var(--cyan);font-weight:600;margin-left:4px">—</span>
+            </div>
+          </div>
+          <div id="rotation-hint" class="rotation-hint" style="display:none">
+            <span id="rotation-reason"></span>
+          </div>
+          <div class="hero-thresholds">
+            <div>≥70% <span class="q-dot q-dot--good">●</span> норма</div>
+            <div>40-70% <span class="q-dot q-dot--mid">●</span> следи</div>
+            <div>&lt;40% <span class="q-dot q-dot--bad">●</span> ротация</div>
+          </div>
         </div>
-        <!-- Dialplan pool stats -->
-        <div style="display:flex;gap:16px;padding:10px 18px;background:var(--surf2);border-bottom:1px solid var(--border);font-size:11px;flex-wrap:wrap">
-          <span style="color:var(--muted)">Пул randcool за час:</span>
-          <span>Звонков: <strong id="dp-calls">—</strong></span>
-          <span>Найден транк: <strong id="dp-found" style="color:var(--ok)">—</strong></span>
-          <span>Все заняты: <strong id="dp-busy" style="color:var(--danger)">—</strong></span>
-          <span>Ср. пропусков/звонок: <strong id="dp-skips" style="color:var(--warn)">—</strong></span>
+
+        <div class="card card-accent-cyan">
+          <div class="hero-kicker">Последние 15 мин</div>
+          <div id="q-mini-15" style="font-size:12px;line-height:2;color:var(--muted2)">—</div>
         </div>
-        <div style="overflow-x:auto">
-          <table id="trunk-perf-table">
-            <thead>
-              <tr>
-                <th>Транк</th>
-                <th>Дозвон %</th>
-                <th style="width:120px">Визуализация</th>
-                <th>Звонков</th>
-                <th>Нет ответа</th>
-                <th>Failed</th>
-                <th>Ср. длит.</th>
-              </tr>
-            </thead>
-            <tbody id="trunk-perf-tbody">
-              <tr><td colspan="7" class="empty">Загрузка…</td></tr>
-            </tbody>
-          </table>
+
+        <div class="card card-accent-violet">
+          <div class="hero-kicker">Последний час</div>
+          <div id="q-mini-1h" style="font-size:12px;line-height:2;color:var(--muted2)">—</div>
+        </div>
+
+      </div>
+
+      <!-- Volume + Quality chart -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Объём звонков и качество</span>
+          <span style="font-size:11px;color:var(--muted)">Столбики = % дозвона · Линия = объём</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-h"><canvas id="q-chart"></canvas></div>
         </div>
       </div>
 
-      <!-- Error log analysis -->
-      <div class="card">
+      <!-- Log viewer card -->
+      <div class="card" style="margin-top:16px">
         <div class="card-head">
-          <span class="card-title">Анализ лога Asterisk</span>
-          <select class="input" id="err-hours" style="width:auto;font-size:11px" onchange="loadErrors()">
-            <option value="1">1 час</option>
-            <option value="6">6 часов</option>
-            <option value="24">24 часа</option>
-          </select>
+          <span class="card-title">Лог Asterisk</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="log-level" class="input"
+              style="font-size:11px;padding:2px 6px;width:auto" onchange="loadLogs()">
+              <option value="errors">WARNING / ERROR</option>
+              <option value="sip5xx">SIP 5xx</option>
+              <option value="all">Все важные</option>
+            </select>
+            <button class="btn" onclick="loadLogs()"
+              style="font-size:11px;padding:2px 8px">↻</button>
+            <label style="font-size:11px;color:var(--muted2);cursor:pointer">
+              <input type="checkbox" id="log-auto" checked onchange="toggleLogAuto()"> авто
+            </label>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="err-summary" id="err-summary"></div>
-          <div id="err-details"></div>
+        <div class="card-body" style="padding:0">
+          <div id="log-viewer" class="log-viewer">
+            <span style="color:var(--muted2)">Загрузка…</span>
+          </div>
         </div>
       </div>
+
     </div>
 
     <!-- ── RECORDINGS ────────────────────────────────────────────────── -->
@@ -1016,11 +1327,68 @@ select.input { cursor: pointer; }
           <div id="r-results"><div class="empty">Введите номер для поиска</div></div>
         </div>
       </div>
-    </div>
+    </div><!-- /sec-recordings -->
 
-  </div><!-- /content -->
-</div><!-- /main -->
-</div><!-- /shell -->
+    <!-- СМЕНА section -->
+    <div class="section" id="sec-shift">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Смена — Настройка пулов</span>
+          <span id="sh-backup-badge" style="display:none;font-size:11px;
+            color:var(--ok);background:rgba(34,214,90,.1);padding:3px 8px;border-radius:4px">
+            ✓ Бекап существует
+          </span>
+        </div>
+        <div class="card-body">
+
+          <!-- Параметры -->
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end">
+            <div class="fld">
+              <label class="fld-lbl">Порог звонков на extension</label>
+              <input class="input" id="sh-threshold" type="number" value="100" style="width:90px">
+            </div>
+            <div class="fld">
+              <label class="fld-lbl">Кулдаун (сек)</label>
+              <input class="input" id="sh-cooldown" type="number" value="30" style="width:90px">
+            </div>
+            <div style="color:var(--muted2);font-size:12px;padding-bottom:4px" id="sh-ext-info">
+              Extensions в FreePBX: —
+            </div>
+          </div>
+
+          <!-- Группы -->
+          <div class="divider">Группы операторов</div>
+          <div id="sh-groups" style="margin-bottom:10px"></div>
+          <button class="btn" onclick="shAddGroup()" style="font-size:12px;margin-bottom:16px">
+            + Добавить группу
+          </button>
+
+          <div id="sh-alloc-info" style="font-size:12px;color:var(--muted2);margin-bottom:16px"></div>
+
+          <!-- Action buttons -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <button class="btn btn-ok" onclick="shGenerate()">🔄 Сформировать конфиг</button>
+            <button class="btn btn-ok" id="sh-apply-btn" onclick="shApply()"
+              style="display:none">✓ Применить к FreePBX</button>
+            <button class="btn btn-danger" id="sh-rollback-btn" onclick="shRollback()"
+              style="display:none">↩ Откатить изменения</button>
+          </div>
+
+          <!-- Dialplan preview -->
+          <div id="sh-preview" style="display:none">
+            <div class="divider">Сформированный конфиг</div>
+            <pre id="sh-dialplan-pre" class="pre-block pre-block--ok"></pre>
+          </div>
+
+          <!-- AstDB preview -->
+          <div id="sh-astdb-div" style="display:none;margin-top:12px">
+            <div class="divider">Команды AstDB (init_pools)</div>
+            <pre id="sh-astdb-pre" class="pre-block pre-block--cyan"></pre>
+          </div>
+
+        </div>
+      </div>
+    </div>
 
   </div><!-- /content -->
 </div><!-- /main -->
@@ -1031,7 +1399,28 @@ select.input { cursor: pointer; }
 /* ── State ─────────────────────────────────────────────────────────────── */
 let currentSection = 'trunks';
 let qPeriod = '1h';
-let tPeriod = '24h';
+let tzOffset = parseInt(localStorage.getItem('tz_offset') || '3');  // default UTC+3
+
+function initTZ() {
+  const sel = document.getElementById('tz-offset');
+  if (!sel) return;
+  sel.innerHTML = '';
+  for (let i = -12; i <= 14; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (i >= 0 ? '+' : '') + i;
+    if (i === tzOffset) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function setTZ(val) {
+  tzOffset = parseInt(val);
+  localStorage.setItem('tz_offset', tzOffset);
+  loadTimeline();
+  loadHourly();
+}
+let tPeriod = '1h';
 let chart   = null;
 let refreshTimer = null;
 let lastPhone = '', lastFrom = '', lastTo = '';
@@ -1044,10 +1433,35 @@ let hourlyChart = null;
 const THRESHOLDS = { good: 70, warn: 40 };
 
 function rateColor(rate) {
-  if (rate >= THRESHOLDS.good) return 'var(--ok)';
-  if (rate >= THRESHOLDS.warn) return 'var(--warn)';
-  return 'var(--danger)';
+  if (rate >= THRESHOLDS.good) return 'var(--q-good)';
+  if (rate >= THRESHOLDS.warn) return 'var(--q-mid)';
+  return 'var(--q-bad)';
 }
+
+/* Chart.js — те же уровни, что и цифры на экране */
+const CHART = {
+  grid:      'rgba(26, 45, 74, 0.55)',
+  tick:      '#7b92b8',
+  empty:     'rgba(21, 38, 64, 0.6)',
+  good:      'rgba(0, 229, 255, 0.85)',
+  mid:       'rgba(102, 238, 255, 0.72)',
+  bad:       'rgba(124, 107, 255, 0.82)',
+  na:        'rgba(123, 146, 184, 0.5)',
+  fail:      'rgba(255, 77, 106, 0.48)',
+  cyan:      'rgba(0, 229, 255, 0.88)',
+  cyanFill:  'rgba(0, 229, 255, 0.07)',
+  threshold: 'rgba(0, 229, 255, 0.42)',
+};
+
+function rateBarColor(p) {
+  if (p >= THRESHOLDS.good) return CHART.good;
+  if (p >= THRESHOLDS.warn) return CHART.mid;
+  return CHART.bad;
+}
+
+const chartLegend = {
+  labels: { color: CHART.tick, font: { size: 11, family: "'JetBrains Mono'" }, boxWidth: 12 }
+};
 
 // Chart.js instance для пиковых часов
 
@@ -1059,7 +1473,7 @@ function fmtDuration(sec) {
 
 async function loadHourly() {
   try {
-    const d  = await api('/api/quality/hourly');
+    const d  = await api(`/api/quality/hourly?tz=${tzOffset}`);
     const hl = d.hourly || [];
 
     // Метки: "00:00", "01:00" ... "23:00"
@@ -1072,10 +1486,8 @@ async function loadHourly() {
 
     // Цветовая кодировка столбиков по % дозвона каждого часа
     const barColors = hl.map(h => {
-      if (!h.total) return 'rgba(35,42,58,.3)';
-      if (h.rate >= 70) return 'rgba(34,214,90,.55)';
-      if (h.rate >= 40) return 'rgba(240,165,0,.55)';
-      return 'rgba(240,58,58,.55)';
+      if (!h.total) return CHART.empty;
+      return rateBarColor(h.rate);
     });
 
     hourlyChart = new Chart(ctx, {
@@ -1095,7 +1507,8 @@ async function loadHourly() {
             type: 'line',
             label: '% дозвона',
             data: rates,
-            borderColor: 'rgba(77,124,254,.9)',
+            borderColor: CHART.cyan,
+            pointBackgroundColor: CHART.cyan,
             borderWidth: 2,
             pointRadius: 2,
             yAxisID: 'y1',
@@ -1110,9 +1523,7 @@ async function loadHourly() {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            labels: { color: '#5a6a8a', font: { size: 11, family: "'JetBrains Mono'" }, boxWidth: 12 }
-          },
+          legend: { ...chartLegend },
           tooltip: {
             callbacks: {
               label(ctx) {
@@ -1124,18 +1535,18 @@ async function loadHourly() {
           }
         },
         scales: {
-          x: { ticks: { color: '#5a6a8a', font: { size: 9 } }, grid: { color: 'rgba(35,42,58,.4)' } },
+          x: { ticks: { color: CHART.tick, font: { size: 9 } }, grid: { color: CHART.grid } },
           y: {
             position: 'left',
-            ticks: { color: '#5a6a8a', font: { size: 9 } },
-            grid: { color: 'rgba(35,42,58,.4)' }
+            ticks: { color: CHART.tick, font: { size: 9 } },
+            grid: { color: CHART.grid }
           },
           y1: {
             type: 'linear',
             position: 'right',
             min: 0, max: 100,
             grid: { drawOnChartArea: false },
-            ticks: { color: 'rgba(77,124,254,.8)', font: { size: 9 }, callback: v => v + '%' }
+            ticks: { color: CHART.cyan, font: { size: 9 }, callback: v => v + '%' }
           }
         }
       }
@@ -1152,6 +1563,7 @@ function nav(name) {
   });
   currentSection = name;
   clearInterval(refreshTimer);
+  clearInterval(logAutoTimer); logAutoTimer=null;
   doRefresh();
   if (name === 'trunks') refreshTimer = setInterval(() => { loadTrunks(); loadContacts(); }, 30000);
 }
@@ -1163,8 +1575,11 @@ function doRefresh() {
   switch (currentSection) {
     case 'trunks':     loadTrunks(); break;
     case 'fail2ban':   loadF2B();     break;
-    case 'quality':    loadQuality(); loadErrors(); break;  // loadQuality вызывает loadTimeline и loadHourly
+    case 'quality':    loadQuality(); loadErrors();
+      loadLogs(); if(document.getElementById('log-auto')?.checked) { clearInterval(logAutoTimer); logAutoTimer=setInterval(loadLogs,5000); }
+      break;  // loadQuality вызывает loadTimeline и loadHourly
     case 'recordings': if (lastPhone) doSearch(); break;
+    case 'shift':      shLoadExtensions(); break;
   }
   document.getElementById('last-refresh').textContent =
     'обновлено ' + new Date().toLocaleTimeString('ru-RU');
@@ -1303,8 +1718,12 @@ function toggleCh(name, btn) {
 function showSubTab(name) {
   document.getElementById('subtab-trunks').style.display   = name === 'trunks'   ? 'block' : 'none';
   document.getElementById('subtab-contacts').style.display = name === 'contacts' ? 'block' : 'none';
+  const poolEl = document.getElementById('subtab-pool');
+  if (poolEl) poolEl.style.display = name === 'pool' ? 'block' : 'none';
   document.getElementById('stab-trunks').classList.toggle('active',   name === 'trunks');
   document.getElementById('stab-contacts').classList.toggle('active', name === 'contacts');
+  const stabPool = document.getElementById('stab-pool');
+  if (stabPool) stabPool.classList.toggle('active', name === 'pool');
   if (name === 'contacts') loadContacts();
 }
 
@@ -1559,57 +1978,88 @@ async function doWhitelist() {
 }
 async function loadQuality() {
   try {
-    const d = await api(`/api/quality/stats?period=${qPeriod}`);
+    const tz = parseInt(document.getElementById('tz-offset')?.value || '0');
+    const d = await api(`/api/quality/stats?period=${qPeriod}&tz=${tz}`);
     const s = d.stats;
-    document.getElementById('q-total').textContent  = s.total;
-    document.getElementById('q-ans').textContent    = s.answered;
-    document.getElementById('q-ans-r').textContent  = s.answer_rate + '% отвечено';
-    document.getElementById('q-na').textContent     = s.no_answer;
-    document.getElementById('q-fail').textContent   = s.failed + s.busy;
-    document.getElementById('q-fail-r').textContent = s.fail_rate + '% ошибок';
 
-    // Красим «ошибки» по порогу
-    const failEl = document.getElementById('q-fail');
-    failEl.style.color = s.fail_rate > 30 ? 'var(--danger)' :
-                         s.fail_rate > 15 ? 'var(--warn)' : 'var(--text)';
-
-    // Рекомендация по ротации номера на основе % нет ответа
-    const hint   = document.getElementById('rotation-hint');
-    const reason = document.getElementById('rotation-reason');
-    const naRate = s.total > 0 ? Math.round(s.no_answer / s.total * 100) : 0;
-
-    const periodLabels = {
-      '15m':'за 15 минут', '30m':'за 30 минут', '1h':'за 1 час',
-      '6h':'за 6 часов', '24h':'за 24 часа', '7d':'за 7 дней'
-    };
-    const pLabel = periodLabels[qPeriod] || '';
-
-    if (s.total >= 10 && naRate >= ROTATION_THRESHOLDS.critical) {
-      hint.style.display = 'block';
-      hint.style.borderColor = 'rgba(240,58,58,.5)';
-      hint.style.background  = 'rgba(240,58,58,.08)';
-      hint.querySelector('strong').style.color = 'var(--danger)';
-      hint.querySelector('strong').textContent = '🔴 Срочно меняйте номер';
-      reason.textContent = `${naRate}% звонков без ответа ${pLabel} — номер заблокирован как спам`;
-    } else if (s.total >= 10 && naRate >= ROTATION_THRESHOLDS.warn) {
-      hint.style.display = 'block';
-      hint.style.borderColor = 'rgba(240,165,0,.4)';
-      hint.style.background  = 'rgba(240,165,0,.08)';
-      hint.querySelector('strong').style.color = 'var(--warn)';
-      hint.querySelector('strong').textContent = '⚠ Рекомендуется ротация';
-      reason.textContent = `${naRate}% звонков без ответа ${pLabel} — номер теряет репутацию`;
-    } else {
-      hint.style.display = 'none';
+    // Big rate card
+    const rate = parseFloat(s.answer_rate) || 0;
+    const rateEl = document.getElementById('q-rate-big');
+    if (rateEl) {
+      rateEl.textContent = rate + '%';
+      rateEl.style.color = rateColor(rate);
+      document.getElementById('q-hero-card').style.borderLeftColor = rateColor(rate);
     }
 
-  } catch (e) { console.error(e); }
+    // Trend
+    const trendEl = document.getElementById('q-trend');
+    if (trendEl && s.trend != null) {
+      const sign = s.trend > 0 ? '+' : '';
+      trendEl.textContent = sign + s.trend + '%';
+      trendEl.style.color = s.trend >= 0 ? 'var(--q-good)' : 'var(--q-error)';
+    }
+    const subEl = document.getElementById('q-hero-sub');
+    if (subEl) subEl.textContent = s.prev_answer_rate ? `пред. ${s.prev_answer_rate}%` : '';
 
+    // Stats grid
+    const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    set('q-total',  s.total);
+    set('q-ans',    s.answered);
+    set('q-ans-r',  `(${s.answer_rate}%)`);
+    set('q-na',     s.no_answer);
+    set('q-na-pct', `(${s.no_answer_rate}%)`);
+    set('q-fail',   s.failed + s.busy);
+    set('q-fail-r', `(${s.fail_rate}%)`);
+    set('q-avg-dur', s.avg_duration ? s.avg_duration + 'с' : '—');
+
+    // Rotation hint
+    const hint = document.getElementById('rotation-hint');
+    const reason = document.getElementById('rotation-reason');
+    if (hint && reason) {
+      if (rate < THRESHOLDS.warn) {
+        hint.style.display = 'block';
+        reason.textContent = rate < THRESHOLDS.warn
+          ? `Дозвон ${rate}% — рекомендуется сменить CallerID`
+          : '';
+      } else {
+        hint.style.display = 'none';
+      }
+    }
+  } catch(e) { console.error('loadQuality:', e); }
+
+  // Mini stats always load
+  loadMiniStats();
   loadTimeline();
+  loadHourly();
 }
+
+async function loadMiniStats() {
+  const fmt = (s) => {
+    if (!s || !s.total) return '<span style="color:var(--muted2)">Нет данных</span>';
+    const rate = parseFloat(s.answer_rate) || 0;
+    const col = rateColor(rate);
+    return `<div style="font-size:22px;font-weight:700;color:${col};margin-bottom:6px">${rate}% <span style="font-size:12px;font-weight:400;color:var(--muted2)">дозвон</span></div>
+      <div>✓ <b style="color:var(--q-good)">${s.answered}</b> <span style="color:var(--muted2)">(${s.answer_rate}%)</span></div>
+      <div>✗ <b style="color:var(--q-mid)">${s.no_answer}</b> <span style="color:var(--muted2)">(${s.no_answer_rate}%)</span></div>
+      <div>⚠ <b style="color:var(--q-error)">${s.failed + s.busy}</b> <span style="color:var(--muted2)">(${s.fail_rate}%)</span></div>
+      <div style="margin-top:4px;color:var(--muted2)">Всего: ${s.total} зв.</div>`;
+  };
+  try {
+    const [d15, d1h] = await Promise.all([
+      api('/api/quality/stats?period=15m'),
+      api('/api/quality/stats?period=1h'),
+    ]);
+    const el15 = document.getElementById('q-mini-15');
+    const el1h = document.getElementById('q-mini-1h');
+    if (el15) el15.innerHTML = fmt(d15.stats);
+    if (el1h) el1h.innerHTML = fmt(d1h.stats);
+  } catch(e) { console.error('loadMiniStats:', e); }
+}
+
 
 async function loadTimeline() {
   try {
-    const d  = await api(`/api/quality/timeline?period=${tPeriod}`);
+    const d  = await api(`/api/quality/timeline?period=${tPeriod}&tz=${tzOffset}`);
     const tl = d.timeline || [];
     const labels = tl.map(r => r.period);
 
@@ -1624,11 +2074,7 @@ async function loadTimeline() {
     const volumes   = tl.map(r => r.answered + r.no_answer + (r.failed||0) + (r.busy||0));
 
     // Цвет столбика дозвона по пороговым значениям
-    const barColors = answerPct.map(p =>
-      p >= 70 ? 'rgba(34,214,90,.85)' :
-      p >= 40 ? 'rgba(240,165,0,.85)' :
-                'rgba(240,58,58,.85)'
-    );
+    const barColors = answerPct.map(p => rateBarColor(p));
 
     const ctx = document.getElementById('q-chart').getContext('2d');
     if (chart) chart.destroy();
@@ -1645,29 +2091,28 @@ async function loadTimeline() {
           },
           {
             type: 'bar', label: 'Нет ответа %',
-            data: naPct, backgroundColor: 'rgba(240,165,0,.5)',
+            data: naPct, backgroundColor: CHART.na,
             stack: 'pct', yAxisID: 'y',
           },
           {
             type: 'bar', label: 'Ошибки %',
-            data: failPct, backgroundColor: 'rgba(240,58,58,.5)',
+            data: failPct, backgroundColor: CHART.fail,
             stack: 'pct', yAxisID: 'y',
           },
           {
-            // Пороговая линия прямо на % оси — чётко видно что ниже нормы
-            type: 'line', label: 'Порог 60%',
-            data: tl.map(() => 60),
-            borderColor: 'rgba(255,255,255,.4)', borderWidth: 1.5,
+            type: 'line', label: 'Порог 70%',
+            data: tl.map(() => THRESHOLDS.good),
+            borderColor: CHART.threshold, borderWidth: 1.5,
             borderDash: [5, 4], pointRadius: 0,
             yAxisID: 'y', fill: false, tension: 0,
           },
           {
-            // Объём — на правой оси (контекст значимости)
             type: 'line', label: 'Всего звонков',
             data: volumes,
-            borderColor: 'rgba(77,124,254,.7)',
-            backgroundColor: 'rgba(77,124,254,.05)',
+            borderColor: CHART.cyan,
+            backgroundColor: CHART.cyanFill,
             borderWidth: 2, pointRadius: 2, pointHoverRadius: 5,
+            pointBackgroundColor: CHART.cyan,
             yAxisID: 'y1', tension: 0.3, fill: true, spanGaps: true,
           },
         ]
@@ -1676,9 +2121,7 @@ async function loadTimeline() {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            labels: { color: '#5a6a8a', font: { size: 11, family: "'JetBrains Mono'" }, boxWidth: 12 }
-          },
+          legend: { ...chartLegend },
           tooltip: {
             callbacks: {
               title: items => {
@@ -1691,7 +2134,7 @@ async function loadTimeline() {
                 if (di === 0) return ` Дозвон: ${answerPct[i]}%  (${r.answered} шт)`;
                 if (di === 1) return ` Нет ответа: ${naPct[i]}%  (${r.no_answer} шт)`;
                 if (di === 2) return ` Ошибки: ${failPct[i]}%`;
-                if (di === 3) return ` Порог: 60%`;
+                if (di === 3) return ` Порог: ${THRESHOLDS.good}%`;
                 if (di === 4) return ` Всего звонков: ${volumes[i]}`;
               }
             }
@@ -1700,19 +2143,19 @@ async function loadTimeline() {
         scales: {
           x: {
             stacked: true,
-            ticks: { color: '#5a6a8a', font: { size: 9 }, maxRotation: 45 },
-            grid:  { color: 'rgba(35,42,58,.4)' }
+            ticks: { color: CHART.tick, font: { size: 9 }, maxRotation: 45 },
+            grid:  { color: CHART.grid }
           },
           y: {
             stacked: true, position: 'left', min: 0, max: 100,
-            ticks: { color: '#5a6a8a', font: { size: 10 }, callback: v => v + '%', stepSize: 20 },
-            grid:  { color: 'rgba(35,42,58,.5)' },
+            ticks: { color: CHART.tick, font: { size: 10 }, callback: v => v + '%', stepSize: 20 },
+            grid:  { color: CHART.grid },
           },
           y1: {
             type: 'linear', position: 'right',
             grid: { drawOnChartArea: false },
-            ticks: { color: 'rgba(77,124,254,.55)', font: { size: 9 } },
-            title: { display: true, text: 'звонков', color: 'rgba(77,124,254,.45)', font: { size: 9 } }
+            ticks: { color: CHART.cyan, font: { size: 9 } },
+            title: { display: true, text: 'звонков', color: CHART.cyan, font: { size: 9 } }
           }
         }
       }
@@ -1725,10 +2168,10 @@ async function loadTrunkPerformance() {
   const tbody = document.getElementById('trunk-perf-tbody');
   try {
     // Грузим параллельно: рейтинг транков и статистику диалплана
-    const [tp, dp] = await Promise.all([
+    const [tp, dp] = await Promise.allSettled([
       api(`/api/quality/trunk_performance?period=${trunkPerfPeriod}`),
       api('/api/quality/dialplan?hours=1'),
-    ]);
+    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : {}));
 
     // Обновляем шапку dialplan stats
     document.getElementById('dp-calls').textContent = dp.calls_started || 0;
@@ -1772,7 +2215,6 @@ function setTrunkPerfPeriod(p, btn) {
   trunkPerfPeriod = p;
   btn.closest('.period-tabs').querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  loadTrunkPerformance();
 }
 
 async function loadErrors() {
@@ -1811,6 +2253,7 @@ function toggleErrGroup(id) {
 
 function setQP(p, btn) {
   qPeriod = p;
+  tPeriod = p;
   document.querySelectorAll('#qp-tabs .ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   loadQuality();
@@ -1926,6 +2369,430 @@ loadTrunks();
 setInterval(loadServerInfo, 60000);
 setContactsRefresh(30);
 refreshTimer = setInterval(loadTrunks, 30000);
+
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LOG VIEWER
+// ══════════════════════════════════════════════════════════════════════════════
+let logAutoTimer = null;
+
+async function loadLogs() {
+  const level = document.getElementById('log-level')?.value || 'errors';
+  const el = document.getElementById('log-viewer');
+  if (!el) return;
+  try {
+    const d = await api(`/api/logs?limit=80&level=${level}`);
+    const lines = d.lines || [];
+    if (!lines.length) {
+      el.innerHTML = '<span style="color:var(--muted2)">Ошибок не найдено</span>';
+      return;
+    }
+    const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+    el.innerHTML = lines.map(l => {
+      let cls = 'color:var(--muted)';
+      if (l.includes('ERROR'))   cls = 'color:var(--danger)';
+      else if (l.includes('WARNING')) cls = 'color:var(--warn)';
+      else if (l.includes('SIP/2.0 5')) cls = 'color:var(--danger)';
+      // Сдвигаем UTC-таймстамп лога на +tzOffset часов
+      const shifted = l.replace(/\[(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\]/,
+        (m, y, mo, d, h, mi, s) => {
+          const dt = new Date(Date.UTC(+y, +mo-1, +d, +h, +mi, +s));
+          dt.setUTCHours(dt.getUTCHours() + tzOffset);
+          const p = n => String(n).padStart(2,'0');
+          return `[${dt.getUTCFullYear()}-${p(dt.getUTCMonth()+1)}-${p(dt.getUTCDate())} ${p(dt.getUTCHours())}:${p(dt.getUTCMinutes())}:${p(dt.getUTCSeconds())}]`;
+        });
+      return `<div style="${cls}">${shifted.replace(/</g,'&lt;')}</div>`;
+    }).join('');
+    if (wasAtBottom) el.scrollTop = el.scrollHeight;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--danger)">${e.message}</span>`;
+  }
+}
+
+function toggleLogAuto() {
+  const cb = document.getElementById('log-auto');
+  if (cb?.checked) {
+    loadLogs();
+    logAutoTimer = setInterval(loadLogs, 5000);
+  } else {
+    clearInterval(logAutoTimer);
+    logAutoTimer = null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHIFT / POOL SETUP
+// ══════════════════════════════════════════════════════════════════════════════
+let shExtensions = [];
+let shGeneratedDialplan = '';
+let shGeneratedAstdb = [];
+
+function shAddGroup(name='', count='') {
+  const container = document.getElementById('sh-groups');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px';
+  row.innerHTML = `
+    <input class="input" placeholder="Группа (2033)" style="width:120px"
+      data-field="name" value="${name}">
+    <input class="input" placeholder="Линий" type="number" style="width:90px"
+      data-field="count" value="${count}" min="1">
+    <button class="btn" style="padding:3px 10px;font-size:12px"
+      onclick="this.parentElement.remove();shUpdateAlloc()">✕</button>
+  `;
+  row.querySelector('input[data-field="count"]').addEventListener('input', shUpdateAlloc);
+  row.querySelector('input[data-field="name"]').addEventListener('input', shUpdateAlloc);
+  container.appendChild(row);
+  shUpdateAlloc();
+}
+
+function shGetGroups() {
+  const rows = document.querySelectorAll('#sh-groups > div');
+  const groups = [];
+  rows.forEach(row => {
+    const name  = row.querySelector('[data-field="name"]').value.trim();
+    const count = parseInt(row.querySelector('[data-field="count"]').value) || 0;
+    if (name && count > 0) groups.push({name, count});
+  });
+  return groups;
+}
+
+function shUpdateAlloc() {
+  const groups = shGetGroups();
+  const total  = shExtensions.length;
+  const needed = groups.reduce((s,g) => s+g.count, 0);
+  const reserve = total - needed;
+  const info = document.getElementById('sh-alloc-info');
+  if (!info) return;
+  if (!total) { info.textContent = ''; return; }
+  const ok = reserve >= 0;
+  info.innerHTML = `Всего extensions: <b>${total}</b> | Выделено: <b>${needed}</b> | Резерв: <b style="color:${ok?'var(--ok)':'var(--danger)'}">${reserve}</b>`;
+}
+
+async function shLoadExtensions() {
+  try {
+    const d = await api('/api/pool/extensions');
+    shExtensions = d.extensions || [];
+    const info = document.getElementById('sh-ext-info');
+    if (info) info.textContent = `Extensions в FreePBX: ${shExtensions.length}`;
+    shUpdateAlloc();
+    // Check backup
+    const bk = await api('/api/pool/backup_exists');
+    const badge = document.getElementById('sh-backup-badge');
+    const rollBtn = document.getElementById('sh-rollback-btn');
+    if (badge) badge.style.display = bk.exists ? 'inline' : 'none';
+    if (rollBtn) rollBtn.style.display = bk.exists ? 'inline-block' : 'none';
+  } catch(e) { console.error('shLoadExtensions:', e); }
+}
+
+async function shGenerate() {
+  const groups = shGetGroups();
+  if (!groups.length) { showAlert('err', 'Добавь хотя бы одну группу'); return; }
+  const total   = shExtensions.length;
+  const needed  = groups.reduce((s,g) => s+g.count, 0);
+  if (needed > total) {
+    showAlert('err', `Нужно ${needed} extensions, доступно ${total}`);
+    return;
+  }
+  const threshold = parseInt(document.getElementById('sh-threshold').value) || 100;
+  const cooldown  = parseInt(document.getElementById('sh-cooldown').value)  || 30;
+
+  // Shuffle extensions and assign
+  const pool = [...shExtensions].sort(() => Math.random()-0.5);
+  let idx = 0;
+  const groupPools = {};
+  for (const g of groups) {
+    groupPools[g.name] = pool.slice(idx, idx+g.count);
+    idx += g.count;
+  }
+  const reserve = pool.slice(idx);
+
+  // Generate dialplan
+  const trunklists = {};
+  for (const [grp, exts] of Object.entries(groupPools)) {
+    trunklists[grp] = exts.join('&');
+  }
+  shGeneratedDialplan = generateDialplan(trunklists, threshold, cooldown);
+
+  // Generate AstDB init commands
+  shGeneratedAstdb = [
+    'database deltree glist',
+    'database deltree gcount',
+    'database deltree gstatus',
+    'database del cool reserve',
+    'database del cool threshold',
+    'database del cool cooldown',
+  ];
+  for (const [grp, exts] of Object.entries(groupPools)) {
+    shGeneratedAstdb.push(`database put glist ${grp} ${exts.join('&')}`);
+  }
+  if (reserve.length) shGeneratedAstdb.push(`database put cool reserve ${reserve.join('&')}`);
+  shGeneratedAstdb.push(`database put cool threshold ${threshold}`);
+  shGeneratedAstdb.push(`database put cool cooldown ${cooldown}`);
+
+  // Show previews
+  document.getElementById('sh-dialplan-pre').textContent = shGeneratedDialplan;
+  document.getElementById('sh-preview').style.display = 'block';
+  document.getElementById('sh-astdb-pre').textContent = shGeneratedAstdb.map(c=>`asterisk -rx "${c}"`).join('\n');
+  document.getElementById('sh-astdb-div').style.display = 'block';
+  document.getElementById('sh-apply-btn').style.display = 'inline-block';
+
+  showAlert('ok', `Конфиг сформирован: ${groups.length} групп, ${reserve.length} в резерве`);
+}
+
+function generateDialplan(trunklists, threshold, cooldown) {
+  const ts = new Date().toLocaleString('ru');
+  let out = `; ═══════════════════════════════════════════════════════════════════
+`;
+  out += `; RANDCOOL v2 — сформирован дашбордом ${ts}
+`;
+  out += `; Порог: ${threshold} звонков | Кулдаун: ${cooldown} сек
+`;
+  out += `; ═══════════════════════════════════════════════════════════════════
+
+`;
+  out += `[randcool]
+`;
+  out += `exten => _X.,1,NoOp(RANDCOOL-V2 group=\${CALLERID(num)} dst=\${EXTEN})
+`;
+  out += ` same => n,Set(GRP=\${CALLERID(num)})
+`;
+  out += ` same => n,Set(NUMBER=\${EXTEN})
+`;
+  out += ` same => n,Set(THRESHOLD=\${DB(cool/threshold)})
+`;
+  out += ` same => n,Set(THRESHOLD=\${IF(\$["\${THRESHOLD}"=""]?${threshold}:\${THRESHOLD})})
+`;
+  out += ` same => n,Set(COOLDOWN=\${DB(cool/cooldown)})
+`;
+  out += ` same => n,Set(COOLDOWN=\${IF(\$["\${COOLDOWN}"=""]?${cooldown}:\${COOLDOWN})})
+`;
+  out += ` same => n,Set(TRUNKLIST=\${DB(glist/\${GRP})})
+`;
+  out += ` same => n,GotoIf(\$["\${TRUNKLIST}"!=""]?go)
+`;
+  out += ` same => n,Goto(allbusy)
+`;
+  out += ` same => n(go),Set(TLEN=\${FIELDQTY(TRUNKLIST,&)})
+`;
+  out += ` same => n,Set(TRY=1)
+`;
+  out += ` same => n,Set(STARTIDX=\${RAND(1,\${TLEN})})
+`;
+  out += ` same => n(choose),GotoIf(\$[\${TRY} > \${TLEN}]?allbusy)
+`;
+  out += ` same => n,Set(IDX=\$[((\${STARTIDX}+\${TRY}-2)%\${TLEN})+1])
+`;
+  out += ` same => n,Set(TR=\${CUT(TRUNKLIST,&,\${IDX})})
+`;
+  out += ` same => n,GotoIf(\$["\${DB(gstatus/\${TR})}"="burned"]?skip)
+`;
+  out += ` same => n,Set(CNT=\${DB(gcount/\${TR})})
+`;
+  out += ` same => n,Set(CNT=\${IF(\$["\${CNT}"=""]?0:\${CNT})})
+`;
+  out += ` same => n,GotoIf(\$[\${CNT} >= \${THRESHOLD}]?burn)
+`;
+  out += ` same => n,Set(NOW=\${EPOCH})
+`;
+  out += ` same => n,Set(STATE=\${DB(cool/\${TR})})
+`;
+  out += ` same => n,GotoIf(\$["\${STATE}"=""]?useit)
+`;
+  out += ` same => n,GotoIf(\$["\${STATE}"="IN_CALL"]?skip)
+`;
+  out += ` same => n,GotoIf(\$[\${NOW} < \${STATE}]?skip)
+`;
+  out += ` same => n(useit),NoOp(Using \${TR} calls=\${CNT}/\${THRESHOLD} grp=\${GRP})
+`;
+  out += ` same => n,Set(DB(cool/\${TR})=IN_CALL)
+`;
+  out += ` same => n,Set(__RANDCOOL_TRUNK=\${TR})
+`;
+  out += ` same => n,Set(CHANNEL(hangup_handler_push)=randcool-hangup,s,1)
+`;
+  out += ` same => n,Gosub(sub-record-check,s,1(out,\${NUMBER},force))
+`;
+  out += ` same => n,Dial(PJSIP/\${NUMBER}@\${TR},60,g)
+`;
+  out += ` same => n,GotoIf(\$["\${DIALSTATUS}"="ANSWER"]?done)
+`;
+  out += ` same => n,NoOp(Failed: \${DIALSTATUS} trunk=\${TR})
+`;
+  out += ` same => n,Set(DB(cool/\${TR})=\$[\${EPOCH}+\${CD}])
+`;
+  out += ` same => n,Set(TRY=\$[\${TRY}+1])
+`;
+  out += ` same => n,Goto(choose)
+`;
+  out += ` same => n(skip),Set(TRY=\$[\${TRY}+1])
+`;
+  out += ` same => n,Goto(choose)
+`;
+  out += ` same => n(burn),NoOp(Burning \${TR}: \${CNT}>=\${THRESHOLD})
+`;
+  out += ` same => n,Set(DB(gstatus/\${TR})=burned)
+`;
+  out += ` same => n,Set(TRY=\$[\${TRY}+1])
+`;
+  out += ` same => n,Goto(choose)
+`;
+  out += ` same => n(allbusy),Playback(all-circuits-busy-now)
+`;
+  out += ` same => n,Hangup()
+`;
+  out += ` same => n(done),Hangup()
+
+`;
+  out += `[randcool-hangup]
+`;
+  out += `exten => s,1,NoOp(HANGUP trunk=\${RANDCOOL_TRUNK})
+`;
+  out += ` same => n,GotoIf(\$["\${RANDCOOL_TRUNK}"=""]?end)
+`;
+  out += ` same => n,Set(C=\${DB(gcount/\${RANDCOOL_TRUNK})})
+`;
+  out += ` same => n,Set(C=\${IF(\$["\${C}"=""]?0:\${C})})
+`;
+  out += ` same => n,Set(DB(gcount/\${RANDCOOL_TRUNK})=\$[\${C}+1])
+`;
+  out += ` same => n,Set(CD=\${DB(cool/cooldown)})
+`;
+  out += ` same => n,Set(CD=\${IF(\$["\${CD}"=""]?${cooldown}:\${CD})})
+`;
+  out += ` same => n,Set(DB(cool/\${RANDCOOL_TRUNK})=\$[\${EPOCH}+\${CD}])
+`;
+  out += ` same => n(end),Return()
+
+`;
+  out += `[from-internal-custom]
+`;
+  out += `exten => _X.,1,Goto(randcool,\${EXTEN},1)
+`;
+  return out;
+}
+
+async function shApply() {
+  if (!shGeneratedDialplan) { showAlert('err', 'Сначала сформируй конфиг'); return; }
+  if (!confirm('Применить новый randcool к FreePBX? Текущий конфиг будет сохранён как бекап.')) return;
+  try {
+    const d = await api('/api/pool/apply', 'POST', {
+      dialplan: shGeneratedDialplan,
+      astdb_cmds: shGeneratedAstdb
+    });
+    showAlert('ok', 'Конфиг применён! Диалплан перезагружен.');
+    document.getElementById('sh-backup-badge').style.display = 'inline';
+    document.getElementById('sh-rollback-btn').style.display = 'inline-block';
+  } catch(e) { showAlert('err', e.message); }
+}
+
+async function shRollback() {
+  if (!confirm('Откатить к предыдущему конфигу? AstDB пулы будут очищены.')) return;
+  try {
+    await api('/api/pool/rollback', 'POST', {});
+    showAlert('ok', 'Откат выполнен. Диалплан перезагружен.');
+    document.getElementById('sh-backup-badge').style.display = 'none';
+    document.getElementById('sh-rollback-btn').style.display = 'none';
+    document.getElementById('sh-apply-btn').style.display = 'none';
+    document.getElementById('sh-preview').style.display = 'none';
+    document.getElementById('sh-astdb-div').style.display = 'none';
+  } catch(e) { showAlert('err', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// POOL STATUS (in Operators section)
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadPoolStatus() {
+  try {
+    const d = await api('/api/pool/status');
+    renderPoolStatus(d);
+  } catch(e) { /* no pools configured yet */ }
+}
+
+function renderPoolStatus(d) {
+  const el = document.getElementById('pool-status-container');
+  if (!el) return;
+
+  const t = d.totals || {};
+  const threshold = d.threshold || 100;
+
+  // Header summary
+  const hdr = document.getElementById('pool-status-header');
+  if (hdr) {
+    hdr.innerHTML = `
+      <span class="stat-chip">📋 ${t.extensions||0} ext</span>
+      <span class="stat-chip" style="color:var(--ok)">● ${t.active||0} активных</span>
+      <span class="stat-chip" style="color:var(--danger)">✕ ${t.burned||0} сгоревших</span>
+      <span class="stat-chip" style="color:var(--cyan)">↺ ${t.reserve||0} резерв</span>
+      <span style="color:var(--muted2);font-size:11px">порог: ${threshold} звонков</span>
+    `;
+  }
+
+  // Group tables
+  if (!d.groups || !Object.keys(d.groups).length) {
+    el.innerHTML = '<div style="color:var(--muted2);padding:16px">Пулы не инициализированы. Используй раздел Смена.</div>';
+    return;
+  }
+
+  el.innerHTML = Object.entries(d.groups).map(([grp, data]) => {
+    const rows = data.extensions.map(ext => {
+      let badge, color;
+      if (ext.status === 'burned')   { badge='✕ сгоревший'; color='var(--danger)'; }
+      else if (ext.status==='in_call') { badge='📞 звонит';  color='var(--ok)'; }
+      else if (ext.status==='cooldown'){ badge='⏳ кулдаун'; color='var(--warn)'; }
+      else                             { badge='● активный'; color='var(--ok)'; }
+      const pct = Math.min(100, Math.round(ext.calls/threshold*100));
+      return `<tr>
+        <td style="font-family:var(--mono);color:var(--text)">${ext.name}</td>
+        <td style="color:${color}">${badge}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="flex:1;background:var(--bg3);border-radius:4px;height:6px;max-width:80px">
+              <div style="width:${pct}%;height:6px;background:${pct>=100?'var(--danger)':pct>60?'var(--warn)':'var(--ok)'};border-radius:4px"></div>
+            </div>
+            <span style="font-size:11px;color:var(--muted2)">${ext.calls}/${threshold}</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const openId = `grp-${grp}`;
+    return `
+      <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <div onclick="toggleGrp('${openId}')" style="display:flex;justify-content:space-between;
+          align-items:center;padding:10px 14px;background:var(--bg2);cursor:pointer">
+          <span style="font-weight:600;font-size:13px">Группа ${grp}</span>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px">
+            <span style="color:var(--muted2)">${data.total} ext</span>
+            <span style="color:var(--ok)">● ${data.active} активных</span>
+            ${data.burned?`<span style="color:var(--danger)">✕ ${data.burned} сгоревших</span>`:''}
+            <span id="${openId}-arrow" style="color:var(--muted2)">▼</span>
+          </div>
+        </div>
+        <div id="${openId}" style="display:none">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--bg3)">
+                <th style="padding:6px 14px;text-align:left;color:var(--muted2);font-weight:500">Extension</th>
+                <th style="padding:6px;text-align:left;color:var(--muted2);font-weight:500">Статус</th>
+                <th style="padding:6px 14px;text-align:left;color:var(--muted2);font-weight:500">Звонки</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleGrp(id) {
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id+'-arrow');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▼' : '▲';
+}
 
 </script>
 </body>

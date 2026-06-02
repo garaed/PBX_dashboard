@@ -13,7 +13,7 @@
 ## Быстрая установка
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/ТВОЙ_НИК/pbx-dashboard/main/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/garaed/pbx-dashboard/main/setup.sh)
 ```
 
 Скрипт сам установит зависимости, скопирует файлы и запустит systemd-сервис.
